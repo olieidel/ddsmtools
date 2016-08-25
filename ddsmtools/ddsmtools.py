@@ -41,14 +41,28 @@ def file_lines_list(file, skip_list=[]):
 
 
 def lines_to_dict(l):
-    return {l[i][0]: l[i][1:] for i in range(len(l))}
+    d = {}
+    for v in l:
+        k, v = line_to_kv(v)
+        d[k] = v
+    return d
+    # return {line_to_kv(v) for v in l}
+
+
+def line_to_kv(l):
+    return (l[0], l[1:]) if len(l) > 1 else (l[0],)
 
 
 def flatten_single_dict_vals(d):
     for k, v in d.items():
-        if isinstance(v, (list, tuple)) and len(v) == 1:
-            d[k] = v[0]
+        d[k] = flatten_list(v)
     return d
+
+
+def flatten_list(l):
+    if isinstance(l, (list, tuple)) and len(l) == 1:
+        return l[0]
+    return l
 
 
 def dict_vals_to_int(d):
@@ -95,6 +109,12 @@ def parse_ics(file):
     return ics_attribs
 
 
+# def handle_overlay_key(k, v):
+#     single_vals = ['ABNORMALITY', 'ASSESSMENT', 'SUBTLETY', 'PATHOLOGY', 'TOTAL_OUTLINES']
+#     if k in single_vals:
+#         return (k)
+
+
 def parse_overlay(file):
     with open(file) as f:
         l = file_lines_list(f)
@@ -102,13 +122,33 @@ def parse_overlay(file):
     abn = []
     pos = 1
     for i in range(total_abnorm):
-        m = lines_to_dict(l[pos:pos + 6])
-        m = flatten_single_dict_vals(m)
-        m = dict_vals_to_int(m)
-        m['LESION_TYPE'].insert(0, 'TYPE')
-        m['LESION_TYPE'] = zip_list_to_dict(m['LESION_TYPE'])
-        total_outl = m['TOTAL_OUTLINES']
-        pos += 6
+        # find position of last key: TOTAL_OUTLINES
+        for li, v in enumerate(l[pos:]):
+            if v[0] == 'TOTAL_OUTLINES':
+                last_key = li + pos
+                break
+
+        until = last_key + 1
+
+        d = {}
+        print(pos)
+        print(until)
+        for v in l[pos:until]:
+            if v[0] == 'LESION_TYPE':
+                lesion_attribs = ['NAME'] + v[1:]
+                insert_v = [zip_list_to_dict(lesion_attribs)]
+            else:
+                insert_v = flatten_list(v[1:])
+                insert_v = int(insert_v) if is_int_try(insert_v) else insert_v
+
+            if v[0] in d:
+                # key already in dict
+                d[v[0]].append(insert_v)
+            else:
+                d[v[0]] = insert_v
+
+        total_outl = d['TOTAL_OUTLINES']
+        pos = until
         outl_list = []
         for j in range(total_outl):
             outl = {'NAME': l[pos][0],
@@ -116,8 +156,8 @@ def parse_overlay(file):
                     'PATH': [int(x) for x in l[pos + 1][2:-1] if is_int_try(x)]}  # remove hash at end
             outl_list.append(outl)
             pos += 2
-        m['OUTLINES'] = outl_list
-        abn.append(m)
+        d['OUTLINES'] = outl_list
+        abn.append(d)
     return abn
 
 
@@ -164,12 +204,12 @@ def directions_to_coords(xy_list, start_coords):
 
 
 def path_to_coords(path, start_coords):
-    '''
+    """
     short-hand function for calling path_to_directions() and directions_to_coords() successively.
     :param path:
     :param start_coords:
     :return:
-    '''
+    """
     return directions_to_coords(path_to_directions(path), start_coords)
 
 
@@ -186,11 +226,11 @@ def coords_to_fill_mask(xy, shape):
 
 
 def mask_to_display(mask):
-    '''
+    """
     Returns a better plotable mask by setting 0s to nan. This requires converting the array to float.
     :param mask: boolean mask
     :return: float mask with 0s set to nan
-    '''
+    """
     mask = mask.astype('float')
     mask[mask == 0] = np.nan
     return mask
