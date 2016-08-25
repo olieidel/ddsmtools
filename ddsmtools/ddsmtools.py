@@ -3,6 +3,7 @@ from glob import glob
 from datetime import date
 import numpy as np
 from mahotas import polygon
+from ljpeg3 import ljpeg  # https://github.com/olieidel/ljpeg3
 
 
 def is_int_try(v):
@@ -131,8 +132,6 @@ def parse_overlay(file):
         until = last_key + 1
 
         d = {}
-        print(pos)
-        print(until)
         for v in l[pos:until]:
             if v[0] == 'LESION_TYPE':
                 lesion_attribs = ['NAME'] + v[1:]
@@ -175,14 +174,6 @@ def path_to_directions(l):
                   5: [1, -1],
                   6: [0, -1],
                   7: [-1, -1]}
-    # chain_code = {0: [0, -1],
-    #               1: [1, -1],
-    #               2: [1, 0],
-    #               3: [1, 1],
-    #               4: [0, 1],
-    #               5: [-1, 1],
-    #               6: [-1, 0],
-    #               7: [-1, -1]}
     return [chain_code[x] for x in l]
 
 
