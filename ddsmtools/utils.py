@@ -11,6 +11,9 @@ def is_int_try(v):
 
 def date_from_list(l):
     l = [int(x) for x in l if is_int_try(x)]
+    if l[1] > 12:
+        # months and day have been swapped, thanks for that
+        l[0], l[1] = l[1], l[0]
     return date(day=l[0], month=l[1], year=l[2])
 
 
@@ -21,7 +24,11 @@ def file_lines_list(file, skip_list=[]):
 def lines_to_dict(l):
     d = {}
     for v in l:
-        k, v = line_to_kv(v)
+        try:
+            k, v = line_to_kv(v)
+        except:
+            k = v[0]
+            v = None
         d[k] = v
     return d
 
