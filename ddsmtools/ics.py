@@ -12,7 +12,7 @@ def ics_file_name(path):
         print('found no corresponding ics file')
         return None
     elif len(ics_files) == 1:
-        print('found ics file')
+        # print('found ics file')
         return ics_files[0]
     else:
         print('found multiple ics files! Using first one.')
