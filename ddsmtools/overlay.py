@@ -42,6 +42,9 @@ def parse_overlay(file):
         pos = until
         outl_list = []
         for j in range(total_outl):
+            # in case of faulty total_outlines count, skip
+            if len(l) >= pos:
+                break
             outl = {'NAME': l[pos][0],
                     'START_COORDS': (int(l[pos + 1][0]), int(l[pos + 1][1])),
                     'PATH': [int(x) for x in l[pos + 1][2:-1] if is_int_try(x)]}  # remove hash at end
