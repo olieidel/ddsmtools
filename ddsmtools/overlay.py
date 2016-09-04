@@ -26,7 +26,7 @@ def parse_overlay(file):
         d = {}
         for v in l[pos:until]:
             if v[0] == 'LESION_TYPE':
-                lesion_attribs = ['NAME'] + v[1:]
+                lesion_attribs = ['name'] + v[1:]
                 insert_v = [zip_list_to_dict(lesion_attribs)]
             else:
                 insert_v = flatten_list(v[1:])
@@ -43,8 +43,13 @@ def parse_overlay(file):
         outl_list = []
         for j in range(total_outl):
             # in case of faulty total_outlines count, skip
-            if len(l) >= pos:
+            if pos >= len(l):
                 break
+            try:
+                int(l[pos + 1][0])
+            except:
+                break
+
             outl = {'NAME': l[pos][0],
                     'START_COORDS': (int(l[pos + 1][0]), int(l[pos + 1][1])),
                     'PATH': [int(x) for x in l[pos + 1][2:-1] if is_int_try(x)]}  # remove hash at end

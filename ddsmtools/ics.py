@@ -31,6 +31,7 @@ def parse_ics(file):
 
     ics_attribs['DATE_DIGITIZED'] = date_from_list(ics_attribs['DATE_DIGITIZED'])
     ics_attribs['DATE_OF_STUDY'] = date_from_list(ics_attribs['DATE_OF_STUDY'])
+    ics_attribs['DIGITIZER'] = ' '.join(ics_attribs['DIGITIZER'])
 
     for k, v in ics_attribs.items():
         if k in sequences:
