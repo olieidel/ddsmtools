@@ -5,6 +5,9 @@ from ddsmtools.utils import file_lines_list, zip_list_to_dict, flatten_list, is_
 
 
 def overlay_file_name(p):
+    """
+    generate overlay file name from ljpeg file name
+    """
     return '.'.join(p.split('.')[:-1]) + '.OVERLAY'
 
 
@@ -35,6 +38,7 @@ def parse_overlay(file):
             if v[0] in d:
                 # key already in dict
                 d[v[0]].append(insert_v)
+
             else:
                 d[v[0]] = insert_v
 

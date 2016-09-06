@@ -34,7 +34,7 @@ def lines_to_dict(l):
 
 
 def line_to_kv(l):
-    return (l[0], l[1:]) if len(l) > 1 else (l[0],)
+    return (l[0], (l[1:] if len(l) > 2 else l[1])) if len(l) > 1 else (l[0],)
 
 
 def flatten_single_dict_vals(d):
