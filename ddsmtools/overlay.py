@@ -1,7 +1,8 @@
 import numpy as np
 from mahotas import polygon
 
-from ddsmtools.utils import file_lines_list, zip_list_to_dict, flatten_list, is_int_try
+from ddsmtools.utils import file_lines_list, zip_list_to_dict,
+flatten_list, is_int_try
 
 
 def overlay_file_name(p):
@@ -12,57 +13,88 @@ def overlay_file_name(p):
 
 
 def parse_overlay(file):
-    with open(file) as f:
-        l = file_lines_list(f)
-    total_abnorm = int(l[0][1])
-    abn = []
-    pos = 1
-    for i in range(total_abnorm):
-        # find position of last key: TOTAL_OUTLINES
-        for li, v in enumerate(l[pos:]):
-            if v[0] == 'TOTAL_OUTLINES':
-                last_key = li + pos
-                break
+    def get_indices(lines):
+        abnormality_indices = [i for (i, x) in
+                               enumerate(lines) if x[0]=='ABNORMALITY']
+        path_indices = [i for (i, x) in enumerate(lines) if
+                        is_int_try(x[0])]
+        path_desc_indices = [x-1 for x in path_indices]
+        total_outline_indices = [i for (i, x) in enumerate(lines) if
+        x[0]=='TOTAL_OUTLINES']
 
-        until = last_key + 1
+        return abnormality_indices, path_indices, path_desc_indices,
+        total_outline_indices
 
-        d = {}
-        for v in l[pos:until]:
-            if v[0] == 'LESION_TYPE':
-                lesion_attribs = ['name'] + v[1:]
-                insert_v = [zip_list_to_dict(lesion_attribs)]
-            else:
-                insert_v = flatten_list(v[1:])
-                insert_v = int(insert_v) if is_int_try(insert_v) else insert_v
+    with open(file) as f: lines = file_lines_list(f)
 
-            if v[0] in d:
-                # key already in dict
-                d[v[0]].append(insert_v)
+    abnormality_indices, path_indices, path_desc_indices,
+    total_outline_indices = get_indices(lines)
 
-            else:
-                d[v[0]] = insert_v
+    # overwrite outlines as dicts for i in path_indices:
+    lines[i] = ['OUTLINE',
+                {'NAME': lines[i-1][0], 'START_COORDS': (lines[i][0],
+                            lines[i][1]), 'PATH': [int(x) for x in
+                            lines[i][2:]if is_int_try(x)]}]
 
-        total_outl = d['TOTAL_OUTLINES']
-        pos = until
-        outl_list = []
-        for j in range(total_outl):
-            # in case of faulty total_outlines count, skip
-            if pos >= len(l):
-                break
-            try:
-                int(l[pos + 1][0])
-            except:
-                break
+    # cast to int
+    for i, x in enumerate(l):
+        if len(l[i]) == 2 and is_int_try(l[i][1]):
+            l[i][1] = int(l[i][1])
 
-            outl = {'NAME': l[pos][0],
-                    'START_COORDS': (int(l[pos + 1][0]), int(l[pos + 1][1])),
-                    'PATH': [int(x) for x in l[pos + 1][2:-1] if is_int_try(x)]}  # remove hash at end
-            outl_list.append(outl)
-            pos += 2
-        d['OUTLINES'] = outl_list
-        abn.append(d)
-    return abn
+    # delete unneeded entries
+    to_delete = []
+    to_delete = total_outline_indices + path_desc_indices
+    to_delete.sort()
 
+    for i in to_delete[::-1]:
+        del lines[i]
+
+    # recalculate indices, ugh
+    # we cannot use a dict yet because we have duplicate entries,
+    # mostly for outlines and rarely for lesion_types
+    abnormality_indices, path_indices, path_desc_indices, total_outline_indices = get_indices(lines)
+
+    # append last entry so we cant split the abnormalities
+    abnormality_indices.append(len(l))
+
+    # split the abnormalities
+    abnormality_split = [l[x:abnormality_indices[i+1]] for (i, x) in
+    enumerate(abnormality_indices) if i != len(abnormality_indices)-1]
+
+    # iterate over the now-split abnormalities
+    for abn in abnormality_split:
+        # merge all outline dicts to list
+        outlines = [x[1] for x in abn if x[0]=='OUTLINE']
+        outlines_index = [i for (i, x) in enumerate(abn) if x[0]=='OUTLINE']
+
+        # delete the old entries
+        for i in outlines_index[::-1]:
+            del abn[i]
+
+        # append to list
+        abn.append(['OUTLINES', outlines])
+
+        # get lesion_type entries
+        lesion_types = [x[1:] for x in abn if x[0]=='LESION_TYPE']
+
+        # prepend NAME in front as usually there is an uneven count of
+        # tags and the first entry is actually some sort of
+        # description of the lesion type
+        [x.insert(0, 'NAME') for x in lesion_types]
+
+        # zip list pairs to dict in hope that there now is an even count
+        lesion_types = [zip_list_to_dict(x) for x in lesion_types]
+
+        # delete the now old entries
+        lesion_type_indices = [i for (i, x) in enumerate(abn) if x[0]=='LESION_TYPE']
+        for i in lesion_type_indices[::-1]:
+            del abn[i]
+
+        # append to list
+        abn.append(['LESION_TYPES', lesion_types])
+
+    # finally, return a list of dicts, each dict consisting of a lesion
+    return [lines_to_dict(x) for x in abnormality_split]
 
 def path_to_directions(l):
     """
