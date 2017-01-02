@@ -5,7 +5,8 @@ from ddsmtools import overlay
 
 def mask_to_display(m):
     """
-    Returns a better plotable mask by setting 0s to nan. This requires converting the array to float.
+    Returns a better plottable mask by setting 0s to nan. This requires
+    converting the array to float.
     :param m: boolean mask
     :return: mask (as numpy array of type float) with zeroes set to nan
     """
@@ -13,8 +14,20 @@ def mask_to_display(m):
     m[m == 0] = np.nan
     return m
 
-
 def overlays_prepare(plt, m, shape):
+    """
+    prepare data for plotting overlays onto image with their respective
+    description
+
+    :param plt: matplotlib pyplot object
+    :param m: parsed overlays dict
+    :param shape: shape of image
+    :return: masks: boolean masks of overlays
+    :return: legends: legends dict for further processing in overlays_plot
+    :return colors: colors as rgb which to use for overlays
+    :return color_vals: single values of colors for plotting
+    """
+
     n = len([i2
              for i in m
              for i2 in i['OUTLINES']])
@@ -38,7 +51,6 @@ def overlays_prepare(plt, m, shape):
                         'loc': locs[i]})
 
     return masks, legends, colors, color_vals
-
 
 def overlays_plot(plt, ax, image, masks, legends, colors, color_vals):
     ax.imshow(image, vmin=0, vmax=4096, cmap='gray')

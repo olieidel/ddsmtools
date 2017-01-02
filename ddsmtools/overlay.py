@@ -1,8 +1,8 @@
 import numpy as np
 from mahotas import polygon
 
-from ddsmtools.utils import file_lines_list, zip_list_to_dict,
-flatten_list, is_int_try
+from ddsmtools.utils import file_lines_list, zip_list_to_dict \
+    , flatten_list, is_int_try, lines_to_dict
 
 
 def overlay_file_name(p):
@@ -22,24 +22,23 @@ def parse_overlay(file):
         total_outline_indices = [i for (i, x) in enumerate(lines) if
         x[0]=='TOTAL_OUTLINES']
 
-        return abnormality_indices, path_indices, path_desc_indices,
-        total_outline_indices
+        return abnormality_indices, path_indices, path_desc_indices, total_outline_indices
 
-    with open(file) as f: lines = file_lines_list(f)
+    with open(file) as f:
+        lines = file_lines_list(f)
 
-    abnormality_indices, path_indices, path_desc_indices,
-    total_outline_indices = get_indices(lines)
+    abnormality_indices, path_indices, path_desc_indices, total_outline_indices = get_indices(lines)
 
-    # overwrite outlines as dicts for i in path_indices:
-    lines[i] = ['OUTLINE',
-                {'NAME': lines[i-1][0], 'START_COORDS': (lines[i][0],
-                            lines[i][1]), 'PATH': [int(x) for x in
-                            lines[i][2:]if is_int_try(x)]}]
+    # overwrite outlines as dicts
+    for i in path_indices:
+        lines[i] = ['OUTLINE', {'NAME': lines[i-1][0], 'START_COORDS':
+                (lines[i][0], lines[i][1]), 'PATH': [int(x) for x in
+                lines[i][2:]if is_int_try(x)]}]
 
     # cast to int
-    for i, x in enumerate(l):
-        if len(l[i]) == 2 and is_int_try(l[i][1]):
-            l[i][1] = int(l[i][1])
+    for i, x in enumerate(lines):
+        if len(lines[i]) == 2 and is_int_try(lines[i][1]):
+            lines[i][1] = int(lines[i][1])
 
     # delete unneeded entries
     to_delete = []
@@ -55,10 +54,10 @@ def parse_overlay(file):
     abnormality_indices, path_indices, path_desc_indices, total_outline_indices = get_indices(lines)
 
     # append last entry so we cant split the abnormalities
-    abnormality_indices.append(len(l))
+    abnormality_indices.append(len(lines))
 
     # split the abnormalities
-    abnormality_split = [l[x:abnormality_indices[i+1]] for (i, x) in
+    abnormality_split = [lines[x:abnormality_indices[i+1]] for (i, x) in
     enumerate(abnormality_indices) if i != len(abnormality_indices)-1]
 
     # iterate over the now-split abnormalities
